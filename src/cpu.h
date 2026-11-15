@@ -10,7 +10,7 @@
 using namespace std;
 
 inline unordered_map<string, uint8_t> codeMap = {
-    {"HALT", 0xFF}, {"MOV", 0x01}, {"ADD", 0x02}};
+    {"HALT", 0xFF}, {"MOV", 0x01}, {"ADD", 0x02}, {"SUB", 0x03}};
 
 inline unordered_map<string, int> regNameToIndex = {
     {"AL", 0}, {"BL", 1}, {"CL", 2}, {"DL", 3},

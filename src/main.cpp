@@ -17,6 +17,8 @@ int main() {
   addInstruction("MOV AL, 8");
   addInstruction("ADD BL, 3");
   addInstruction("ADD AH, AL");
+  addInstruction("SUB AH, 1");
+  addInstruction("SUB AH, BL");
   addInstruction("HALT");
 
   while (!cpu->getHaltState()) {

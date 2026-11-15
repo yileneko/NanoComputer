@@ -170,5 +170,25 @@ void CPU::runInstruction(Instruction ins) {
     }
     break;
   }
+  case 0x03:
+    if (ins.operands.size() != 2) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+      break;
+    }
+
+    // SUB 寄存器, 立即数
+    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
+      reg[ins.operands[0].value] -= ins.operands[1].value;
+    }
+    // SUB 寄存器, 寄存器
+    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
+      reg[ins.operands[0].value] -= reg[ins.operands[1].value];
+    } else {
+      cerr << "ERR: we do not support the operands like this! "
+           << "instruction: " << toHexString(ins.opcode);
+      break;
+    }
+    break;
   };
 }

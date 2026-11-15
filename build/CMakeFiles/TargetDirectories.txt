@@ -1,0 +1,3 @@
+/home/meow/ProgrammingProjects/NanoComputer/build/CMakeFiles/nanocomputer.dir
+/home/meow/ProgrammingProjects/NanoComputer/build/CMakeFiles/edit_cache.dir
+/home/meow/ProgrammingProjects/NanoComputer/build/CMakeFiles/rebuild_cache.dir

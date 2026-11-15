@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nanocomputer.dir/link.d CMakeFiles/nanocomputer.dir/src/main.cpp.o CMakeFiles/nanocomputer.dir/src/cpu.cpp.o -o nanocomputer

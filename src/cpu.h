@@ -9,11 +9,21 @@
 
 using namespace std;
 
-inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF}, {"MOV", 0x01}};
+inline unordered_map<string, uint8_t> codeMap = {
+    {"HALT", 0xFF}, {"MOV", 0x01}, {"ADD", 0x02}};
+
+inline unordered_map<string, int> regNameToIndex = {
+    {"AL", 0}, {"BL", 1}, {"CL", 2}, {"DL", 3},
+    {"AH", 4}, {"BH", 5}, {"CH", 6}, {"DH", 7}};
+
+struct Operand {
+  bool isReg;
+  uint8_t value;
+};
 
 struct Instruction {
   uint8_t opcode;
-  vector<uint16_t> operands = {};
+  vector<Operand> operands = {};
 };
 
 class CPU {

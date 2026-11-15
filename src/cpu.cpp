@@ -96,7 +96,7 @@ void CPU::addInstruction(string instruction) {
   vector<string> operands = getInstructionOperand(instruction);
   if (ins.opcode == 0x01) {
     if (operands.size() != 3) {
-      cerr << "wrong operands! type: " << ins.opcode
+      cerr << "ERR: wrong operands! type! " << toHexString(ins.opcode)
            << " the number of operands: " << operands.size() << endl;
       return;
     }
@@ -104,7 +104,15 @@ void CPU::addInstruction(string instruction) {
   if (operands.size() > 1) {
     ins.operands = {};
     for (int i = 1; i < operands.size(); i++) {
-      ins.operands.push_back(static_cast<uint8_t>(stoi(operands[i])));
+      Operand op;
+      if (regNameToIndex.find(operands[i]) != regNameToIndex.end()) {
+        op.isReg = true;
+        op.value = regNameToIndex[operands[i]];
+      } else {
+        op.isReg = false;
+        op.value = static_cast<uint8_t>(stoi(operands[i]));
+      }
+      ins.operands.push_back(op);
     }
   }
 
@@ -121,8 +129,45 @@ void CPU::runInstruction(Instruction ins) {
     break;
   }
   case 0x01: {
-    uint8_t imm = static_cast<uint8_t>(ins.operands[1]);
-    reg[ins.operands[0]] = imm;
+    if (ins.operands.size() != 2) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+      break;
+    }
+    // MOV 寄存器, 立即数
+    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
+      reg[ins.operands[0].value] += ins.operands[1].value;
+    }
+    // MOV 寄存器, 寄存器
+    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
+      reg[ins.operands[0].value] += reg[ins.operands[1].value];
+    } else {
+      cerr << "ERR: we do not support the operands like this! "
+           << "instruction: " << toHexString(ins.opcode);
+      break;
+    }
+    uint8_t imm = static_cast<uint8_t>(ins.operands[1].value);
+    reg[ins.operands[0].value] = imm;
+    break;
+  }
+  case 0x02: {
+    if (ins.operands.size() != 2) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+      break;
+    }
+    // ADD 寄存器, 立即数
+    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
+      reg[ins.operands[0].value] += ins.operands[1].value;
+    }
+    // ADD 寄存器, 寄存器
+    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
+      reg[ins.operands[0].value] += reg[ins.operands[1].value];
+    } else {
+      cerr << "ERR: we do not support the operands like this! "
+           << "instruction: " << toHexString(ins.opcode);
+      break;
+    }
     break;
   }
   };

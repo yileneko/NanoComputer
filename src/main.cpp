@@ -14,11 +14,11 @@ void addInstruction(string instruction) { cpu->addInstruction(instruction); }
 int main() {
   initComputer();
 
-  addInstruction("MOV AL, 8");
-  addInstruction("ADD BL, 3");
-  addInstruction("ADD AH, AL");
-  addInstruction("SUB AH, 1");
-  addInstruction("SUB AH, BL");
+  addInstruction("MOV AL, 0");
+  addInstruction("MOV BL, 3");
+  addInstruction("ADD AL, BL");
+  addInstruction("SUB BL, 1");
+  addInstruction("JNZ 2");
   addInstruction("HALT");
 
   while (!cpu->getHaltState()) {

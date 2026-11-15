@@ -168,9 +168,12 @@ void CPU::runInstruction(Instruction ins) {
            << "instruction: " << toHexString(ins.opcode);
       break;
     }
+    if (reg[ins.operands[0].value] == 0) {
+      zeroFlag = true;
+    }
     break;
   }
-  case 0x03:
+  case 0x03: {
     if (ins.operands.size() != 2) {
       cerr << "ERR: failed to run a instruction! "
            << "instruction: " << toHexString(ins.opcode) << endl;
@@ -189,6 +192,21 @@ void CPU::runInstruction(Instruction ins) {
            << "instruction: " << toHexString(ins.opcode);
       break;
     }
+    if (reg[ins.operands[0].value] == 0) {
+      zeroFlag = true;
+    }
     break;
+  }
+  case 0x04: {
+    if (ins.operands.size() != 1) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+      break;
+    }
+    if (!zeroFlag) {
+      pc = ins.operands[0].value;
+    }
+    break;
+  }
   };
 }

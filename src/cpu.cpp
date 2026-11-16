@@ -81,6 +81,8 @@ CPU::CPU(Memory &mem) : mem(mem) {
   for (int i = 0; i < 8; i++) {
     reg.push_back(0);
   }
+  zeroFlag = false;
+  carryFlag = false;
 
   cpuState = "running";
   isHalt = false;
@@ -124,6 +126,7 @@ void CPU::writeOperandValue(const Operand &op, uint8_t value) {
 
 void CPU::printState() {
   cout << "PC: " << pc << " " << "IR: " << toHexString(ir) << " "
+       << " [ZF: " << zeroFlag << ", CF: " << carryFlag << "] "
        << "cpuState: " << cpuState << endl
        << "register: ";
   for (int i = 0; i < reg.size(); i++) {
@@ -260,8 +263,12 @@ void CPU::runInstruction(Instruction ins) {
     break;
   }
   case 0x05: {
-    if (ins.operands.size() != 1)
+    if (ins.operands.size() != 1) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+
       break;
+    }
 
     if (ins.operands[0].type == OperandType::REG) {
       pc = reg[ins.operands[0].value];
@@ -270,6 +277,39 @@ void CPU::runInstruction(Instruction ins) {
     } else {
       pc = mem.read16(ins.operands[0].mem);
     }
+  }
+  case 0x06: {
+    if (ins.operands.size() != 2) {
+      cerr << "ERR: failed to run a instruction! "
+           << "instruction: " << toHexString(ins.opcode) << endl;
+
+      break;
+    }
+
+    if (ins.operands[0].type == OperandType::MEM &&
+        ins.operands[1].type == OperandType::MEM) {
+      cerr << "ERR: x86 system do not support the compare between a memory and "
+              "a memory"
+           << endl;
+      break;
+    }
+
+    uint16_t op1Val = static_cast<uint16_t>(readOperandValue(ins.operands[0]));
+    uint16_t op2Val = static_cast<uint16_t>(readOperandValue(ins.operands[1]));
+
+    if (op1Val == op2Val) {
+      zeroFlag = true;
+    } else {
+      zeroFlag = false;
+    }
+
+    if (op1Val < op2Val) {
+      carryFlag = true;
+    } else {
+      carryFlag = false;
+    }
+
+    break;
   }
   };
 }

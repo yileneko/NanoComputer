@@ -10,9 +10,9 @@
 
 using namespace std;
 
-inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF}, {"MOV", 0x01},
-                                                 {"ADD", 0x02},  {"SUB", 0x03},
-                                                 {"JNZ", 0x04},  {"JMP", 0x05}};
+inline unordered_map<string, uint8_t> codeMap = {
+    {"HALT", 0xFF}, {"MOV", 0x01}, {"ADD", 0x02}, {"SUB", 0x03},
+    {"JNZ", 0x04},  {"JMP", 0x05}, {"CMP", 0x06}};
 
 inline unordered_map<string, int> regNameToIndex = {
     {"AL", 0}, {"BL", 1}, {"CL", 2}, {"DL", 3},
@@ -51,6 +51,7 @@ private:
   uint8_t ir;
   vector<uint8_t> reg;
   bool zeroFlag;
+  bool carryFlag;
 
   uint8_t readOperandValue(const Operand &op);
   void writeOperandValue(const Operand &op, uint8_t value);

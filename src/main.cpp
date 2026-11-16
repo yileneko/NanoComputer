@@ -27,10 +27,9 @@ void addInstruction(string instruction) { cpu->addInstruction(instruction); }
 int main() {
   initComputer();
 
-  cpu->addInstruction("MOV AL, 1");
-  cpu->addInstruction("JMP 3");
-  cpu->addInstruction("MOV AL, 99");
-  cpu->addInstruction("MOV AL, 2");
+  cpu->addInstruction("MOV AL, 9");
+  cpu->addInstruction("MOV BL, 2");
+  cpu->addInstruction("CMP AL, BL");
   cpu->addInstruction("HALT");
 
   while (!cpu->getHaltState()) {

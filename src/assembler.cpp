@@ -140,6 +140,7 @@ void Assembler::assemble(string instruction, bool isDryRun) {
 
   string mnemonic = operands[0];
   uint8_t opcode = 0;
+  // MOV及其变体
   if (mnemonic == "MOV") {
     if (operands.size() == 3) {
       if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
@@ -165,6 +166,62 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       }
     } else {
       cerr << "ERR: MOV needs 2 operands!" << endl;
+      return;
+    }
+  }
+  // ADD及其变体
+  else if (mnemonic == "ADD") {
+    if (operands.size() == 3) {
+      if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["ADD_REG"];
+        } else if (checkMem(operands[2])) {
+          opcode = codeMap["ADD_REG_ADDR"];
+        } else {
+          opcode = codeMap["ADD"];
+        }
+      } else if (checkMem(operands[1])) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["ADD_ADDR_REG"];
+        } else if (checkMem(operands[2])) {
+          cerr << "ERR: x86 doesn't support mem-to-mem!" << endl;
+          return;
+        } else {
+          opcode = codeMap["ADD_ADDR"];
+        }
+      } else {
+        cerr << "ERR: Dest cannot be immediate!" << endl;
+        return;
+      }
+    } else {
+      cerr << "ERR: ADD needs 2 operands!" << endl;
+      return;
+    }
+  } else if (mnemonic == "SUB") {
+    if (operands.size() == 3) {
+      if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["SUB_REG"];
+        } else if (checkMem(operands[2])) {
+          opcode = codeMap["SUB_REG_ADDR"];
+        } else {
+          opcode = codeMap["SUB"];
+        }
+      } else if (checkMem(operands[1])) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["SUB_ADDR_REG"];
+        } else if (checkMem(operands[2])) {
+          cerr << "ERR: x86 doesn't support mem-to-mem!" << endl;
+          return;
+        } else {
+          opcode = codeMap["SUB_ADDR"];
+        }
+      } else {
+        cerr << "ERR: Dest cannot be immediate!" << endl;
+        return;
+      }
+    } else {
+      cerr << "ERR: SUB needs 2 operands!" << endl;
       return;
     }
   } else {

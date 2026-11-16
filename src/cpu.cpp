@@ -147,6 +147,80 @@ void CPU::step() {
     reg[dst] = mem.read8(target);
     break;
   }
+  // ADD REG, REG
+  case 0x0B: {
+    uint8_t dst = mem.read8(pc++);
+    uint8_t target = mem.read8(pc++);
+    reg[dst] = static_cast<uint8_t>(reg[dst] + reg[target]);
+    zeroFlag = (reg[dst] == 0);
+    break;
+  }
+  // ADD  ADDR, IMM
+  case 0x0C: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t imm = mem.read8(pc++);
+    uint8_t n = mem.read8(addr) + imm;
+    mem.write8(addr, n);
+    zeroFlag = (n == 0);
+    break;
+  }
+  // ADD ADDR, REG
+  case 0x0D: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t target = mem.read8(pc++);
+    uint8_t n = mem.read8(addr) + reg[target];
+    mem.write8(addr, n);
+    zeroFlag = (n == 0);
+    break;
+  }
+  // ADD REG, ADDR
+  case 0x0E: {
+    uint8_t dst = mem.read8(pc++);
+    uint16_t target = mem.read16(pc);
+    pc += 2;
+    reg[dst] = static_cast<uint8_t>(reg[dst] + mem.read8(target));
+    zeroFlag = (reg[dst] == 0);
+    break;
+  }
+  // SUB REG, REG
+  case 0x0F: {
+    uint8_t dst = mem.read8(pc++);
+    uint8_t target = mem.read8(pc++);
+    reg[dst] = static_cast<uint8_t>(reg[dst] - reg[target]);
+    zeroFlag = (reg[dst] == 0);
+    break;
+  }
+  // SUB ADDR, IMM
+  case 0x10: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t imm = mem.read8(pc++);
+    uint8_t n = mem.read8(addr) - imm;
+    mem.write8(addr, n);
+    zeroFlag = (n == 0);
+    break;
+  }
+  // SUB ADDR, REG
+  case 0x11: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t target = mem.read8(pc++);
+    uint8_t n = mem.read8(addr) - reg[target];
+    mem.write8(addr, n);
+    zeroFlag = (n == 0);
+    break;
+  }
+  // SUB REG, ADDR
+  case 0x12: {
+    uint8_t dst = mem.read8(pc++);
+    uint16_t target = mem.read16(pc);
+    pc += 2;
+    reg[dst] = static_cast<uint8_t>(reg[dst] - mem.read8(target));
+    zeroFlag = (reg[dst] == 0);
+    break;
+  }
   default: {
     cerr << "ERR: Illegal Opcode: 0x" << hex << (int)ir << dec << endl;
     cpuState = "down";

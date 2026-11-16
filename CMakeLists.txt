@@ -14,6 +14,7 @@ endif()
 add_executable(nanocomputer
     src/main.cpp
     src/cpu.cpp
+    src/memory.cpp
 )
 
 target_include_directories(nanocomputer PRIVATE include)

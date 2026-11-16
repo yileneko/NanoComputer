@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "memory.h"
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -8,11 +9,43 @@
 
 using namespace std;
 
+uint16_t parseMemoryAddress(const std::string &token) {
+  if (token.length() < 2 || token.front() != '[' || token.back() != ']') {
+    cerr << "ERR: Invalid memory format! " << "memory: " << token << endl;
+  }
+
+  std::string innerStr = token.substr(1, token.length() - 2);
+
+  try {
+    uint32_t value = std::stoul(innerStr, nullptr, 0);
+
+    if (value > 0xFFFF) {
+      cerr << "ERR: Address out of 16-bit range! " << "address: " << innerStr
+           << endl;
+    }
+
+    return static_cast<uint16_t>(value);
+  } catch (const std::exception &e) {
+    cerr << "ERR: Failed to parse memory address! " << "address: " << innerStr
+         << endl;
+  }
+
+  return 0;
+}
+
 std::string toHexString(uint8_t v) {
   std::ostringstream oss;
   oss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
       << static_cast<int>(v);
   return oss.str();
+}
+
+bool checkMem(string str) {
+  if (str[0] == '[' && str[str.size() - 1] == ']') {
+    return true;
+  }
+
+  return false;
 }
 
 string getInstructionType(string instruction) {
@@ -41,7 +74,7 @@ vector<string> getInstructionOperand(string instruction) {
   return ret;
 }
 
-CPU::CPU() {
+CPU::CPU(Memory &mem) : mem(mem) {
   instructionStream.clear();
   pc = 0;
   reg.clear();
@@ -56,6 +89,38 @@ CPU::CPU() {
 bool CPU::getHaltState() { return isHalt; }
 
 string CPU::getCPUState() { return cpuState; }
+
+uint8_t CPU::readOperandValue(const Operand &op) {
+  switch (op.type) {
+  case OperandType::REG: {
+    return reg[op.value];
+  }
+  case OperandType::IMM: {
+    return op.value;
+  }
+  case OperandType::MEM: {
+    return mem.read8(op.mem);
+  }
+  }
+  return 0;
+}
+
+void CPU::writeOperandValue(const Operand &op, uint8_t value) {
+  switch (op.type) {
+  case OperandType::REG: {
+    reg[op.value] = value;
+    break;
+  }
+  case OperandType::IMM: {
+    cerr << "ERR: Cannot write to immediate value!" << endl;
+    break;
+  }
+  case OperandType::MEM: {
+    mem.write8(op.mem, value);
+    break;
+  }
+  }
+}
 
 void CPU::printState() {
   cout << "PC: " << pc << " " << "IR: " << toHexString(ir) << " "
@@ -106,11 +171,17 @@ void CPU::addInstruction(string instruction) {
     for (int i = 1; i < operands.size(); i++) {
       Operand op;
       if (regNameToIndex.find(operands[i]) != regNameToIndex.end()) {
-        op.isReg = true;
+        op.type = OperandType::REG;
         op.value = regNameToIndex[operands[i]];
+        op.mem = 0;
+      } else if (checkMem(operands[i])) {
+        op.type = OperandType::MEM;
+        op.value = 0;
+        op.mem = parseMemoryAddress(operands[i]);
       } else {
-        op.isReg = false;
+        op.type = OperandType::IMM;
         op.value = static_cast<uint8_t>(stoi(operands[i]));
+        op.mem = 0;
       }
       ins.operands.push_back(op);
     }
@@ -134,20 +205,10 @@ void CPU::runInstruction(Instruction ins) {
            << "instruction: " << toHexString(ins.opcode) << endl;
       break;
     }
-    // MOV 寄存器, 立即数
-    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
-      reg[ins.operands[0].value] += ins.operands[1].value;
-    }
-    // MOV 寄存器, 寄存器
-    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
-      reg[ins.operands[0].value] += reg[ins.operands[1].value];
-    } else {
-      cerr << "ERR: we do not support the operands like this! "
-           << "instruction: " << toHexString(ins.opcode);
-      break;
-    }
-    uint8_t imm = static_cast<uint8_t>(ins.operands[1].value);
-    reg[ins.operands[0].value] = imm;
+
+    uint8_t newVal = readOperandValue(ins.operands[1]);
+    writeOperandValue(ins.operands[0], newVal);
+
     break;
   }
   case 0x02: {
@@ -156,21 +217,14 @@ void CPU::runInstruction(Instruction ins) {
            << "instruction: " << toHexString(ins.opcode) << endl;
       break;
     }
-    // ADD 寄存器, 立即数
-    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
-      reg[ins.operands[0].value] += ins.operands[1].value;
-    }
-    // ADD 寄存器, 寄存器
-    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
-      reg[ins.operands[0].value] += reg[ins.operands[1].value];
-    } else {
-      cerr << "ERR: we do not support the operands like this! "
-           << "instruction: " << toHexString(ins.opcode);
-      break;
-    }
-    if (reg[ins.operands[0].value] == 0) {
-      zeroFlag = true;
-    }
+
+    uint8_t newVal =
+        readOperandValue(ins.operands[0]) + readOperandValue(ins.operands[1]);
+
+    writeOperandValue(ins.operands[0], newVal);
+
+    zeroFlag = (newVal == 0);
+
     break;
   }
   case 0x03: {
@@ -180,21 +234,13 @@ void CPU::runInstruction(Instruction ins) {
       break;
     }
 
-    // SUB 寄存器, 立即数
-    if (ins.operands[0].isReg && !ins.operands[1].isReg) {
-      reg[ins.operands[0].value] -= ins.operands[1].value;
-    }
-    // SUB 寄存器, 寄存器
-    else if (ins.operands[0].isReg && ins.operands[1].isReg) {
-      reg[ins.operands[0].value] -= reg[ins.operands[1].value];
-    } else {
-      cerr << "ERR: we do not support the operands like this! "
-           << "instruction: " << toHexString(ins.opcode);
-      break;
-    }
-    if (reg[ins.operands[0].value] == 0) {
-      zeroFlag = true;
-    }
+    uint8_t newVal =
+        readOperandValue(ins.operands[0]) - readOperandValue(ins.operands[1]);
+
+    writeOperandValue(ins.operands[0], newVal);
+
+    zeroFlag = (newVal == 0);
+
     break;
   }
   case 0x04: {
@@ -204,7 +250,12 @@ void CPU::runInstruction(Instruction ins) {
       break;
     }
     if (!zeroFlag) {
-      pc = ins.operands[0].value;
+      if (ins.operands[0].type == OperandType::REG ||
+          ins.operands[0].type == OperandType::IMM) {
+        pc = readOperandValue(ins.operands[0]);
+      } else {
+        pc = ins.operands[0].mem;
+      }
     }
     break;
   }

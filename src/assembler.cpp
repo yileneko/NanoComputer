@@ -261,6 +261,8 @@ void Assembler::assemble(string instruction, bool isDryRun) {
 
         if (labelMap.find(opStr) != labelMap.end()) {
           imm = labelMap[opStr];
+        } else if (isDryRun) {
+          imm = 0;
         } else {
           try {
             imm = static_cast<uint16_t>(stoi(opStr, nullptr, 0));
@@ -270,7 +272,8 @@ void Assembler::assemble(string instruction, bool isDryRun) {
           }
         }
 
-        if (opcode == 0x04 || opcode == 0x05) {
+        if (opcode == 0x04 || opcode == 0x05 || opcode == 0x13 ||
+            opcode == 0x14 || opcode == 0x15) {
           if (!isDryRun)
             mem.write16(loadAddress, imm);
           loadAddress += 2;

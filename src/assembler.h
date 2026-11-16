@@ -25,6 +25,9 @@ using namespace std;
 // SUB_ADDR       addr,  imm   0x10
 // SUB_ADDR_REG   addr,  reg   0x11
 // SUB_REG_ADDR   reg,   addr  0x12
+// JZ             addr         0x13
+// JC             addr         0x14
+// JNC            addr         0x15
 inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF},
 
                                                  // MOV 家族
@@ -51,7 +54,10 @@ inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF},
                                                  // 控制流与比较
                                                  {"JNZ", 0x04},
                                                  {"JMP", 0x05},
-                                                 {"CMP", 0x06}};
+                                                 {"CMP", 0x06},
+                                                 {"JZ", 0x13},
+                                                 {"JC", 0x14},
+                                                 {"JNC", 0x15}};
 
 inline unordered_map<string, int> regNameToIndex = {
     {"AL", 0}, {"BL", 1}, {"CL", 2}, {"DL", 3},

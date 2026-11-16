@@ -221,6 +221,33 @@ void CPU::step() {
     zeroFlag = (reg[dst] == 0);
     break;
   }
+  // JZ addr
+  case 0x13: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    if (zeroFlag) {
+      pc = addr;
+    }
+    break;
+  }
+  // JC addr
+  case 0x14: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    if (carryFlag) {
+      pc = addr;
+    }
+    break;
+  }
+  // JNC addr
+  case 0x15: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    if (!carryFlag) {
+      pc = addr;
+    }
+    break;
+  }
   default: {
     cerr << "ERR: Illegal Opcode: 0x" << hex << (int)ir << dec << endl;
     cpuState = "down";

@@ -33,6 +33,25 @@ uint16_t parseMemoryAddress(const std::string &token) {
   return 0;
 }
 
+bool checkRegPtr(string str) {
+  // [BL] true
+
+  if (str.empty())
+    return false;
+
+  if (!(str.front() == '[' && str.back() == ']')) {
+    return false;
+  }
+
+  str = str.substr(1, str.size() - 2);
+
+  if (regNameToIndex.find(str) != regNameToIndex.end()) {
+    return true;
+  }
+
+  return false;
+}
+
 static std::string toHexString(uint8_t v) {
   std::ostringstream oss;
   oss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
@@ -146,10 +165,19 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
           opcode = codeMap["MOV_REG"];
+        } else if (checkRegPtr(operands[2])) {
+          opcode = codeMap["MOV_REG_IND"];
         } else if (checkMem(operands[2])) {
           opcode = codeMap["MOV_REG_ADDR"];
         } else {
           opcode = codeMap["MOV"];
+        }
+      } else if (checkRegPtr(operands[1])) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["MOV_IND_REG"];
+        } else {
+          cerr << "ERR: Unsupported instruction!" << endl;
+          return;
         }
       } else if (checkMem(operands[1])) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
@@ -175,11 +203,17 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
           opcode = codeMap["ADD_REG"];
+        } else if (checkRegPtr(operands[2])) {
+          cerr << "ERR: ADD reg, [reg] not implemented yet!" << endl;
+          return;
         } else if (checkMem(operands[2])) {
           opcode = codeMap["ADD_REG_ADDR"];
         } else {
           opcode = codeMap["ADD"];
         }
+      } else if (checkRegPtr(operands[1])) {
+        cerr << "ERR: ADD reg, [reg] not implemented yet!" << endl;
+        return;
       } else if (checkMem(operands[1])) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
           opcode = codeMap["ADD_ADDR_REG"];
@@ -197,16 +231,24 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       cerr << "ERR: ADD needs 2 operands!" << endl;
       return;
     }
-  } else if (mnemonic == "SUB") {
+  }
+  // SUB及其变体
+  else if (mnemonic == "SUB") {
     if (operands.size() == 3) {
       if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
           opcode = codeMap["SUB_REG"];
+        } else if (checkRegPtr(operands[2])) {
+          cerr << "ERR: ADD reg, [reg] not implemented yet!" << endl;
+          return;
         } else if (checkMem(operands[2])) {
           opcode = codeMap["SUB_REG_ADDR"];
         } else {
           opcode = codeMap["SUB"];
         }
+      } else if (checkRegPtr(operands[1])) {
+        cerr << "ERR: ADD reg, [reg] not implemented yet!" << endl;
+        return;
       } else if (checkMem(operands[1])) {
         if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
           opcode = codeMap["SUB_ADDR_REG"];
@@ -222,6 +264,21 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       }
     } else {
       cerr << "ERR: SUB needs 2 operands!" << endl;
+      return;
+    }
+  }
+  // CMP分支
+  else if (mnemonic == "CMP") {
+    if (operands.size() == 3) {
+      if (regNameToIndex.find(operands[1]) != regNameToIndex.end() &&
+          regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+        opcode = codeMap["CMP"];
+      } else {
+        cerr << "ERR: CMP requires two registers!" << endl;
+        return;
+      }
+    } else {
+      cerr << "ERR: CMP needs 2 operands!" << endl;
       return;
     }
   } else {
@@ -247,6 +304,11 @@ void Assembler::assemble(string instruction, bool isDryRun) {
       if (regNameToIndex.find(opStr) != regNameToIndex.end()) {
         if (!isDryRun)
           mem.write8(loadAddress, regNameToIndex[opStr]);
+        loadAddress += 1;
+      } else if (checkRegPtr(opStr)) {
+        string innerStr = opStr.substr(1, opStr.size() - 2);
+        if (!isDryRun)
+          mem.write8(loadAddress, regNameToIndex[innerStr]);
         loadAddress += 1;
       }
       // 地址

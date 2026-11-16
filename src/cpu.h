@@ -1,6 +1,5 @@
 #pragma once
 
-#include "assembler.h"
 #include "memory.h"
 #include <algorithm>
 #include <cstdint>
@@ -30,4 +29,6 @@ private:
   vector<uint8_t> reg;
   bool zeroFlag;
   bool carryFlag;
+
+  bool checkRegPtr(uint8_t a);
 };

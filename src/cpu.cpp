@@ -17,6 +17,13 @@ static std::string toHexString(uint8_t v) {
   return oss.str();
 }
 
+bool CPU::checkRegPtr(uint8_t a) {
+  if (a >= reg.size()) {
+    return false;
+  }
+  return true;
+}
+
 CPU::CPU(Memory &mem) : mem(mem) {
   pc = 0;
   reg.clear();
@@ -246,6 +253,25 @@ void CPU::step() {
     if (!carryFlag) {
       pc = addr;
     }
+    break;
+  }
+  // MOV reg, [reg]
+  case 0x16: {
+    uint8_t dst = mem.read8(pc++);
+    uint16_t target = mem.read8(pc++);
+    if (!checkRegPtr(dst) || !checkRegPtr(target))
+      break;
+    uint8_t val = mem.read8(reg[target]);
+    reg[dst] = val;
+    break;
+  }
+  // MOV [reg], reg
+  case 0x17: {
+    uint8_t dst = mem.read8(pc++);
+    uint8_t target = mem.read8(pc++);
+    if (!checkRegPtr(dst) || !checkRegPtr(target))
+      break;
+    mem.write8(reg[dst], reg[target]);
     break;
   }
   default: {

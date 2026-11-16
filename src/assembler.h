@@ -28,6 +28,8 @@ using namespace std;
 // JZ             addr         0x13
 // JC             addr         0x14
 // JNC            addr         0x15
+// MOV_REG_IND    reg,   [reg] 0x16
+// MOV_IND_REG    [reg], reg   0x17
 inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF},
 
                                                  // MOV 家族
@@ -36,6 +38,8 @@ inline unordered_map<string, uint8_t> codeMap = {{"HALT", 0xFF},
                                                  {"MOV_ADDR", 0x08},
                                                  {"MOV_ADDR_REG", 0x09},
                                                  {"MOV_REG_ADDR", 0x0A},
+                                                 {"MOV_REG_IND", 0x16},
+                                                 {"MOV_IND_REG", 0x17},
 
                                                  // ADD 家族
                                                  {"ADD", 0x02},

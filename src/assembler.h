@@ -29,13 +29,13 @@ inline unordered_map<string, int> regNameToIndex = {
 
 class Assembler {
 public:
-  bool isHalt;
-
   Assembler(Memory &mem);
 
-  void assemble(string instruction);
+  void assembleProgram(const vector<string> &program);
+  void assemble(string instruction, bool isDryRun);
 
 private:
   Memory &mem;
   uint16_t loadAddress;
+  unordered_map<string, uint16_t> labelMap;
 };

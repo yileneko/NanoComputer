@@ -3,6 +3,7 @@
 #include "memory.h"
 #include <cstddef>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -28,18 +29,21 @@ void cleanupComputer() {
 int main() {
   initComputer();
 
-  ass->assemble("MOV AL, 5");
-  ass->assemble("MOV [0x0100], AL");
-  ass->assemble("MOV BL, [0x0100]");
-  ass->assemble("CMP AL, BL");
-  ass->assemble("JNZ 0x001E");
-  ass->assemble("ADD AL, 2");
-  ass->assemble("SUB AL, 1");
-  ass->assemble("MOV [0x0200], AL");
-  ass->assemble("JMP 0x0023");
-  ass->assemble("MOV [0x0200], 99");
-  ass->assemble("HALT");
-  ass->assemble("HALT");
+  string programStr = "; 这是一个多行汇编程序\n"
+                      "start:\n"
+                      "    MOV AL, 5\n"
+                      "    ADD AL, 3\n"
+                      "    MOV [0x0100], AL\n"
+                      "    HALT\n";
+
+  vector<string> programLines = {};
+  istringstream stream(programStr);
+  string line;
+  while (getline(stream, line)) {
+    programLines.push_back(line);
+  }
+
+  ass->assembleProgram(programLines);
 
   cpu->setPC(0x0000);
 

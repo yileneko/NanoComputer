@@ -27,22 +27,16 @@ void addInstruction(string instruction) { cpu->addInstruction(instruction); }
 int main() {
   initComputer();
 
-  addInstruction("MOV AL, 0");
-  addInstruction("MOV BL, 3");
-  addInstruction("ADD AL, BL");
-  addInstruction("SUB BL, 1");
-  addInstruction("JNZ 2");
-  addInstruction("MOV [0x0100], AL");
-  addInstruction("HALT");
+  cpu->addInstruction("MOV AL, 1");
+  cpu->addInstruction("JMP 3");
+  cpu->addInstruction("MOV AL, 99");
+  cpu->addInstruction("MOV AL, 2");
+  cpu->addInstruction("HALT");
 
-  cout << "Start Running" << endl;
   while (!cpu->getHaltState()) {
     cpu->step();
     cpu->printState();
   }
-
-  cout << "\nTask Ended" << endl;
-  cout << "[0x0100]: " << static_cast<int>(mem->read8(0x0100)) << endl;
 
   cleanupComputer();
 

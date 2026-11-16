@@ -259,5 +259,17 @@ void CPU::runInstruction(Instruction ins) {
     }
     break;
   }
+  case 0x05: {
+    if (ins.operands.size() != 1)
+      break;
+
+    if (ins.operands[0].type == OperandType::REG) {
+      pc = reg[ins.operands[0].value];
+    } else if (ins.operands[0].type == OperandType::IMM) {
+      pc = ins.operands[0].value;
+    } else {
+      pc = mem.read16(ins.operands[0].mem);
+    }
+  }
   };
 }

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <future>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -75,8 +76,8 @@ vector<string> getInstructionOperand(string instruction) {
 }
 
 CPU::CPU(Memory &mem) : mem(mem) {
-  instructionStream.clear();
   pc = 0;
+  loadAddress = 0;
   reg.clear();
   for (int i = 0; i < 8; i++) {
     reg.push_back(0);
@@ -92,38 +93,6 @@ bool CPU::getHaltState() { return isHalt; }
 
 string CPU::getCPUState() { return cpuState; }
 
-uint8_t CPU::readOperandValue(const Operand &op) {
-  switch (op.type) {
-  case OperandType::REG: {
-    return reg[op.value];
-  }
-  case OperandType::IMM: {
-    return op.value;
-  }
-  case OperandType::MEM: {
-    return mem.read8(op.mem);
-  }
-  }
-  return 0;
-}
-
-void CPU::writeOperandValue(const Operand &op, uint8_t value) {
-  switch (op.type) {
-  case OperandType::REG: {
-    reg[op.value] = value;
-    break;
-  }
-  case OperandType::IMM: {
-    cerr << "ERR: Cannot write to immediate value!" << endl;
-    break;
-  }
-  case OperandType::MEM: {
-    mem.write8(op.mem, value);
-    break;
-  }
-  }
-}
-
 void CPU::printState() {
   cout << "PC: " << pc << " " << "IR: " << toHexString(ir) << " "
        << " [ZF: " << zeroFlag << ", CF: " << carryFlag << "] "
@@ -135,181 +104,189 @@ void CPU::printState() {
   cout << endl;
 }
 
+void CPU::setPC(uint16_t val) { pc = val; }
+
 void CPU::step() {
   if (isHalt)
     return;
   cpuState = "running";
-  if (instructionStream.empty()) {
-    return;
-  }
-  if (pc >= instructionStream.size()) {
-    cerr << "PC out of range: missing HALT" << endl;
-    isHalt = true;
-    cpuState = "down";
-    return;
-  }
 
-  ir = instructionStream[pc].opcode;
-
+  ir = mem.read8(pc);
   pc++;
 
-  runInstruction(instructionStream[pc - 1]);
-}
-
-void CPU::addInstruction(string instruction) {
-  if (isHalt)
-    return;
-  Instruction ins;
-  ins.opcode = codeMap[getInstructionType(instruction)];
-  vector<string> operands = getInstructionOperand(instruction);
-  if (ins.opcode == 0x01) {
-    if (operands.size() != 3) {
-      cerr << "ERR: wrong operands! type! " << toHexString(ins.opcode)
-           << " the number of operands: " << operands.size() << endl;
-      return;
-    }
-  }
-  if (operands.size() > 1) {
-    ins.operands = {};
-    for (int i = 1; i < operands.size(); i++) {
-      Operand op;
-      if (regNameToIndex.find(operands[i]) != regNameToIndex.end()) {
-        op.type = OperandType::REG;
-        op.value = regNameToIndex[operands[i]];
-        op.mem = 0;
-      } else if (checkMem(operands[i])) {
-        op.type = OperandType::MEM;
-        op.value = 0;
-        op.mem = parseMemoryAddress(operands[i]);
-      } else {
-        op.type = OperandType::IMM;
-        op.value = static_cast<uint8_t>(stoi(operands[i]));
-        op.mem = 0;
-      }
-      ins.operands.push_back(op);
-    }
-  }
-
-  instructionStream.push_back(ins);
-}
-
-void CPU::runInstruction(Instruction ins) {
-  uint8_t code = ins.opcode;
-
-  switch (code) {
+  switch (ir) {
+  // HALT
   case 0xFF: {
     cpuState = "down";
     isHalt = true;
     break;
   }
+  // MOV reg, imm
   case 0x01: {
-    if (ins.operands.size() != 2) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-      break;
-    }
-
-    uint8_t newVal = readOperandValue(ins.operands[1]);
-    writeOperandValue(ins.operands[0], newVal);
-
+    uint8_t dst = mem.read8(pc++);
+    uint8_t imm = mem.read8(pc++);
+    reg[dst] = imm;
     break;
   }
+  // ADD reg, imm
   case 0x02: {
-    if (ins.operands.size() != 2) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-      break;
-    }
-
-    uint8_t newVal =
-        readOperandValue(ins.operands[0]) + readOperandValue(ins.operands[1]);
-
-    writeOperandValue(ins.operands[0], newVal);
-
-    zeroFlag = (newVal == 0);
-
+    uint8_t dst = mem.read8(pc++);
+    uint8_t imm = mem.read8(pc++);
+    reg[dst] = static_cast<uint8_t>(reg[dst] + imm);
+    zeroFlag = (reg[dst] == 0);
     break;
   }
+  // SUB reg, imm
   case 0x03: {
-    if (ins.operands.size() != 2) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-      break;
-    }
-
-    uint8_t newVal =
-        readOperandValue(ins.operands[0]) - readOperandValue(ins.operands[1]);
-
-    writeOperandValue(ins.operands[0], newVal);
-
-    zeroFlag = (newVal == 0);
-
+    uint8_t dst = mem.read8(pc++);
+    uint8_t imm = mem.read8(pc++);
+    reg[dst] = static_cast<uint8_t>(reg[dst] - imm);
+    zeroFlag = (reg[dst] == 0);
     break;
   }
+  // JNZ addr
   case 0x04: {
-    if (ins.operands.size() != 1) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-      break;
-    }
-    if (!zeroFlag) {
-      if (ins.operands[0].type == OperandType::REG ||
-          ins.operands[0].type == OperandType::IMM) {
-        pc = readOperandValue(ins.operands[0]);
-      } else {
-        pc = ins.operands[0].mem;
-      }
-    }
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    if (!zeroFlag)
+      pc = addr;
     break;
   }
+  // JMP addr
   case 0x05: {
-    if (ins.operands.size() != 1) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-
-      break;
-    }
-
-    if (ins.operands[0].type == OperandType::REG) {
-      pc = reg[ins.operands[0].value];
-    } else if (ins.operands[0].type == OperandType::IMM) {
-      pc = ins.operands[0].value;
-    } else {
-      pc = mem.read16(ins.operands[0].mem);
-    }
+    uint16_t addr = mem.read16(pc);
+    pc = addr;
+    break;
   }
+  // CMP reg, reg
   case 0x06: {
-    if (ins.operands.size() != 2) {
-      cerr << "ERR: failed to run a instruction! "
-           << "instruction: " << toHexString(ins.opcode) << endl;
-
-      break;
-    }
-
-    if (ins.operands[0].type == OperandType::MEM &&
-        ins.operands[1].type == OperandType::MEM) {
-      cerr << "ERR: x86 system do not support the compare between a memory and "
-              "a memory"
-           << endl;
-      break;
-    }
-
-    uint16_t op1Val = static_cast<uint16_t>(readOperandValue(ins.operands[0]));
-    uint16_t op2Val = static_cast<uint16_t>(readOperandValue(ins.operands[1]));
-
-    if (op1Val == op2Val) {
+    uint8_t dst = reg[mem.read8(pc++)];
+    uint8_t dst2 = reg[mem.read8(pc++)];
+    if (dst == dst2) {
       zeroFlag = true;
     } else {
       zeroFlag = false;
     }
 
-    if (op1Val < op2Val) {
+    if (dst < dst2) {
       carryFlag = true;
     } else {
       carryFlag = false;
     }
-
     break;
   }
-  };
+  // MOV_REG reg, reg
+  case 0x07: {
+    uint8_t dst = mem.read8(pc++);
+    uint8_t target = mem.read8(pc++);
+    reg[dst] = reg[target];
+    break;
+  }
+  // MOV ADDR, IMM
+  case 0x08: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t target = mem.read8(pc++);
+    mem.write8(addr, target);
+    break;
+  }
+  // MOV ADDR, REG
+  case 0x09: {
+    uint16_t addr = mem.read16(pc);
+    pc += 2;
+    uint8_t target = mem.read8(pc++);
+    mem.write8(addr, reg[target]);
+    break;
+  }
+  // MOV REG, ADDR
+  case 0x0A: {
+    uint8_t dst = mem.read8(pc++);
+    uint16_t target = mem.read16(pc);
+    pc += 2;
+    reg[dst] = mem.read8(target);
+    break;
+  }
+  default: {
+    cerr << "ERR: Illegal Opcode: 0x" << hex << (int)ir << dec << endl;
+    cpuState = "down";
+    isHalt = true;
+    break;
+  }
+  }
+}
+
+void CPU::addInstruction(string instruction) {
+  if (isHalt)
+    return;
+
+  vector<string> operands = getInstructionOperand(instruction);
+  if (operands.empty())
+    return;
+
+  string mnemonic = operands[0];
+  uint8_t opcode = 0;
+
+  // 解析 Opcode
+  if (mnemonic == "MOV") {
+    if (operands.size() == 3) {
+      if (regNameToIndex.find(operands[1]) != regNameToIndex.end()) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["MOV_REG"];
+        } else if (checkMem(operands[2])) {
+          opcode = codeMap["MOV_REG_ADDR"];
+        } else {
+          opcode = codeMap["MOV"];
+        }
+      } else if (checkMem(operands[1])) {
+        if (regNameToIndex.find(operands[2]) != regNameToIndex.end()) {
+          opcode = codeMap["MOV_ADDR_REG"];
+        } else if (checkMem(operands[2])) {
+          cerr << "ERR: x86 doesn't support mem-to-mem!" << endl;
+          return;
+        } else {
+          opcode = codeMap["MOV_ADDR"];
+        }
+      } else {
+        cerr << "ERR: Dest cannot be immediate!" << endl;
+        return;
+      }
+    } else {
+      cerr << "ERR: MOV needs 2 operands!" << endl;
+      return;
+    }
+  } else {
+    opcode = codeMap[mnemonic];
+  }
+
+  // 写入 Opcode 到 loadAddress
+  mem.write8(loadAddress, opcode);
+  loadAddress++;
+
+  // 写入操作数
+  if (operands.size() > 1) {
+    for (size_t i = 1; i < operands.size(); i++) {
+      string opStr = operands[i];
+      // 寄存器
+      if (regNameToIndex.find(opStr) != regNameToIndex.end()) {
+        mem.write8(loadAddress, regNameToIndex[opStr]);
+        loadAddress += 1;
+      }
+      // 地址
+      else if (checkMem(opStr)) {
+        mem.write16(loadAddress, parseMemoryAddress(opStr));
+        loadAddress += 2;
+      }
+      // 立即数/跳转地址
+      else {
+        uint16_t imm = static_cast<uint16_t>(stoi(opStr, nullptr, 0));
+        if (opcode == 0x04 || opcode == 0x05) {
+          mem.write16(loadAddress, imm);
+          loadAddress += 2;
+        } else {
+          mem.write8(loadAddress, static_cast<uint8_t>(imm));
+          loadAddress += 1;
+        }
+      }
+    }
+  }
 }

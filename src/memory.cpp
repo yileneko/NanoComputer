@@ -42,3 +42,17 @@ void Memory::write8(uint16_t addr, uint8_t value) {
   }
   memory[addr] = value;
 }
+
+void Memory::write16(uint16_t addr, uint16_t value) {
+  if (!checkAddrAvailable(addr) || !checkAddrAvailable(addr + 1)) {
+    cerr << "ERR: the address is not available! " << "address: " << addr
+         << endl;
+    return;
+  }
+
+  uint8_t high = static_cast<uint8_t>(value >> 8);
+  uint8_t low = static_cast<uint8_t>(value);
+
+  memory[addr] = low;
+  memory[addr + 1] = high;
+}

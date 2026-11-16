@@ -1,3 +1,4 @@
+#include "assembler.h"
 #include "cpu.h"
 #include "memory.h"
 #include <cstddef>
@@ -8,10 +9,12 @@
 using namespace std;
 
 Memory *mem = nullptr;
+Assembler *ass = nullptr;
 CPU *cpu = nullptr;
 
 void initComputer() {
   mem = new Memory();
+  ass = new Assembler(*mem);
   cpu = new CPU(*mem);
 }
 
@@ -22,23 +25,21 @@ void cleanupComputer() {
   cpu = nullptr;
 }
 
-void addInstruction(string instruction) { cpu->addInstruction(instruction); }
-
 int main() {
   initComputer();
 
-  cpu->addInstruction("MOV AL, 5");
-  cpu->addInstruction("MOV [0x0100], AL");
-  cpu->addInstruction("MOV BL, [0x0100]");
-  cpu->addInstruction("CMP AL, BL");
-  cpu->addInstruction("JNZ 0x001E");
-  cpu->addInstruction("ADD AL, 2");
-  cpu->addInstruction("SUB AL, 1");
-  cpu->addInstruction("MOV [0x0200], AL");
-  cpu->addInstruction("JMP 0x0023");
-  cpu->addInstruction("MOV [0x0200], 99");
-  cpu->addInstruction("HALT");
-  cpu->addInstruction("HALT");
+  ass->assemble("MOV AL, 5");
+  ass->assemble("MOV [0x0100], AL");
+  ass->assemble("MOV BL, [0x0100]");
+  ass->assemble("CMP AL, BL");
+  ass->assemble("JNZ 0x001E");
+  ass->assemble("ADD AL, 2");
+  ass->assemble("SUB AL, 1");
+  ass->assemble("MOV [0x0200], AL");
+  ass->assemble("JMP 0x0023");
+  ass->assemble("MOV [0x0200], 99");
+  ass->assemble("HALT");
+  ass->assemble("HALT");
 
   cpu->setPC(0x0000);
 
@@ -47,12 +48,6 @@ int main() {
     cpu->printState();
   }
 
-  cout << "内存 0x0100 的值: " << (int)mem->read8(0x0100) << " (预期: 5)"
-       << endl;
-  cout << "内存 0x0200 的值: " << (int)mem->read8(0x0200) << " (预期: 6)"
-       << endl;
-
   cleanupComputer();
-
   return 0;
 }

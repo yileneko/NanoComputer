@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "memory.h"
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -29,12 +30,19 @@ void cleanupComputer() {
 int main() {
   initComputer();
 
-  string programStr = "; 这是一个多行汇编程序\n"
-                      "start:\n"
-                      "    MOV AL, 5\n"
-                      "    ADD AL, 3\n"
-                      "    MOV [0x0100], AL\n"
-                      "    HALT\n";
+  string asmFilePath;
+  cout << "Please enter the path of your asm file: ";
+  cin >> asmFilePath;
+
+  string programStr;
+  ifstream file(asmFilePath);
+  if (!file.is_open()) {
+    cerr << "ERR: failed to open file: " << asmFilePath << endl;
+    return -1;
+  }
+  stringstream buffer;
+  buffer << file.rdbuf();
+  programStr = buffer.str();
 
   vector<string> programLines = {};
   istringstream stream(programStr);

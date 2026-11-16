@@ -68,16 +68,19 @@ int main() {
     cpu->printState();
   }
 
-  cout << "内存机器码 Dump(前 64 字节) " << endl;
+  cout << "Machine code (first 64 bytes): " << endl;
   for (int i = 0; i < 64; i++) {
     cout << hex << setw(2) << setfill('0') << (int)mem->read8(i) << " ";
     if ((i + 1) % 16 == 0)
       cout << endl;
   }
-  cout << dec << "\n数据区 0x00F0~0x00FF (十进制): ";
+  cout << "\nData   0x00F0-0x00FF: ";
   for (int i = 0x00F0; i <= 0x00FF; i++)
-    cout << (int)mem->read8(i) << " ";
-  cout << endl;
+    cout << hex << setw(2) << setfill('0') << (int)mem->read8(i) << " ";
+  cout << "\nResult 0x0100-0x010F: ";
+  for (int i = 0x0100; i <= 0x010F; i++)
+    cout << hex << setw(2) << setfill('0') << (int)mem->read8(i) << " ";
+  cout << dec << endl;
 
   cleanupComputer();
 
